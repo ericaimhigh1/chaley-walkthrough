@@ -96,7 +96,7 @@ export function validateConfig(input: unknown): NormalizedWalkthroughConfig {
     allowActions: config.allowActions ?? timeline.some(cue => cue.action !== undefined),
     player: Object.freeze({ position: player.position ?? 'bottom-right', captions: player.captions ?? true }),
     defaults: Object.freeze({ scroll: defaults.scroll ?? true, effect: defaults.effect ?? 'ripple', transition: defaults.transition ?? 'move', transitionDuration: defaults.transitionDuration ?? 400 }),
-    theme: Object.freeze({ overlayOpacity: theme.overlayOpacity ?? 0.1, highlightColor: theme.highlightColor ?? '#6366f1', padding: theme.padding ?? 6, borderRadius: theme.borderRadius ?? 8 }),
+    theme: Object.freeze({ overlayOpacity: theme.overlayOpacity ?? 0.1, highlightColor: theme.highlightColor ?? '#0039a3', padding: theme.padding ?? 6, borderRadius: theme.borderRadius ?? 8 }),
     timeline: Object.freeze(timeline),
   }) as NormalizedWalkthroughConfig;
 }

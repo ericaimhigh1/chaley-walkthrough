@@ -54,7 +54,7 @@ Validation and timeline functions are internal modules, not supported package im
 | `transition`                          | `move` or `instant`; defaults to `move`.                                                                                                          |
 | `transitionDuration`                  | Finite non-negative milliseconds; defaults to `400`. Zero is accepted.                                                                            |
 | `theme.overlayOpacity`                | Finite number from `0` to `1` inclusive; defaults to `0.1`.                                                                                       |
-| `theme.highlightColor`                | Non-empty string; defaults to `#6366f1`. CSS color syntax is not parsed in Phase 1.                                                               |
+| `theme.highlightColor`                | Non-empty string; defaults to `#0039a3`. CSS color syntax is not parsed in Phase 1.                                                               |
 | `theme.padding`, `theme.borderRadius` | Finite non-negative pixel values; defaults to `6` and `8` respectively.                                                                           |
 | Click action                          | `{ type: 'click' }`. Supplying `holdDuration` is rejected.                                                                                        |
 | Long-press action                     | `{ type: 'longpress', holdDuration: 800 }`, with a finite positive hold duration.                                                                 |

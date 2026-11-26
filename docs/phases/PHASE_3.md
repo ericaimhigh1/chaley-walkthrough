@@ -7,15 +7,15 @@
 
 ## 1. Implemented capabilities
 
-| Capability | Behaviour | Files |
-| --- | --- | --- |
-| Runtime ID lookup | Uses getElementById with the leading # removed; no selector parsing or cached target element. | `src/dom/TargetResolver.ts` |
-| Basic target checks | Missing/disconnected, no layout box, zero dimensions, invalid coordinates and hidden/collapsed visibility produce recoverable warnings. | `TargetResolver.ts` |
-| Persistent static highlight | One reusable outline, positioned from getBoundingClientRect plus configured padding. | `src/dom/HighlightRenderer.ts` |
-| Backdrop and cutout | Default 10% dimming outside a transparent rounded cutout; configurable outline color, radius, padding and opacity. | `HighlightRenderer.ts`, `src/styles/walkthrough.css` |
-| Lifecycle integration | Cue changes, start/resume, explicit seeks and status changes reconcile visuals; stop/end/error clear and destroy removes nodes. | `src/core/Walkthrough.ts` |
-| Input pass-through | Overlay receives no pointer events, creates no focusable controls and does not modify or focus targets. | Stylesheet and renderer |
-| Warning events | Missing/non-renderable targets clear stale visuals without stopping narration. | `Walkthrough.ts`, `src/core/types.ts` |
+| Capability                  | Behaviour                                                                                                                               | Files                                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Runtime ID lookup           | Uses getElementById with the leading # removed; no selector parsing or cached target element.                                           | `src/dom/TargetResolver.ts`                          |
+| Basic target checks         | Missing/disconnected, no layout box, zero dimensions, invalid coordinates and hidden/collapsed visibility produce recoverable warnings. | `TargetResolver.ts`                                  |
+| Persistent static highlight | One reusable outline, positioned from getBoundingClientRect plus configured padding.                                                    | `src/dom/HighlightRenderer.ts`                       |
+| Backdrop and cutout         | Default 10% dimming outside a transparent rounded cutout; configurable outline color, radius, padding and opacity.                      | `HighlightRenderer.ts`, `src/styles/walkthrough.css` |
+| Lifecycle integration       | Cue changes, start/resume, explicit seeks and status changes reconcile visuals; stop/end/error clear and destroy removes nodes.         | `src/core/Walkthrough.ts`                            |
+| Input pass-through          | Overlay receives no pointer events, creates no focusable controls and does not modify or focus targets.                                 | Stylesheet and renderer                              |
+| Warning events              | Missing/non-renderable targets clear stale visuals without stopping narration.                                                          | `Walkthrough.ts`, `src/core/types.ts`                |
 
 No public methods, runtime dependencies, application dashboards or external test projects were added. Existing audio methods and event subscriptions remain the interface. DOM modules are internal package implementation details.
 
@@ -23,7 +23,7 @@ No public methods, runtime dependencies, application dashboards or external test
 
 - Construction creates neither an overlay nor audio. The first drawable active cue creates a root appended to the document body and a single highlight child.
 - The root is fixed, clipped to the viewport, aria-hidden and pointer-transparent. The outline has a transparent background; its outer shadow dims the rest of the viewport.
-- Default geometry expands the target box by 6px on each side; radius defaults to 8px and outline color to #6366f1. Opacity defaults to 0.1.
+- Default geometry expands the target box by 6px on each side; radius defaults to 8px and outline color to #0039a3. Opacity defaults to 0.1.
 - Spotlight renders a static outline/backdrop. Ripple uses that same static appearance until Phase 4 adds rings. No transition or animation is active.
 - Effect-none and null targets hide both outline and backdrop. A cue effect overrides the instance default.
 - Zero overlay opacity removes dimming while retaining the outline. Zero padding and radius are valid.
@@ -38,16 +38,16 @@ The stylesheet is required in both ESM and script-tag integrations. The CSS cust
 
 All three new issue codes use the existing error subscription, with `recoverable: true` and the active cue. Each issue-code/target-ID pair warns at most once per instance; warnings do not force error state or reject playback.
 
-| Condition | Expected outcome |
-| --- | --- |
-| Missing/disconnected ID | TARGET_NOT_FOUND; hide previous decoration; narration continues. |
-| No positive layout box or hidden/collapsed visibility | TARGET_NOT_RENDERABLE; hide previous decoration; narration continues. |
-| Document body unavailable | RENDER_UNAVAILABLE; cannot append overlay; audio may continue. Initialise after DOM readiness. |
-| Target null | Clear decoration without warning. |
-| Effect none | Clear decoration without resolving/warning about the target. |
-| ID contains punctuation | Literal ID resolution; no CSS escaping required. |
-| ID duplicated in host | Host configuration error; no uniqueness scan. Supply unique IDs. |
-| Target restored/replaced | Next render can recover; an already-reported warning is not repeated. |
+| Condition                                             | Expected outcome                                                                               |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Missing/disconnected ID                               | TARGET_NOT_FOUND; hide previous decoration; narration continues.                               |
+| No positive layout box or hidden/collapsed visibility | TARGET_NOT_RENDERABLE; hide previous decoration; narration continues.                          |
+| Document body unavailable                             | RENDER_UNAVAILABLE; cannot append overlay; audio may continue. Initialise after DOM readiness. |
+| Target null                                           | Clear decoration without warning.                                                              |
+| Effect none                                           | Clear decoration without resolving/warning about the target.                                   |
+| ID contains punctuation                               | Literal ID resolution; no CSS escaping required.                                               |
+| ID duplicated in host                                 | Host configuration error; no uniqueness scan. Supply unique IDs.                               |
+| Target restored/replaced                              | Next render can recover; an already-reported warning is not repeated.                          |
 
 Existing configuration and audio error contracts remain unchanged. A warning subscriber may synchronously stop or destroy the tour; rendering must not resurrect a stale overlay afterward.
 
@@ -65,15 +65,15 @@ npm pack
 
 Use npm.cmd when PowerShell blocks npm.ps1. Browser tests use installed Chrome headlessly. npm pack performs type/unit/build checks but does not run browser tests automatically.
 
-| Test area | Coverage |
-| --- | --- |
-| Unit resolver tests | Literal IDs, runtime replacement, disconnected/missing targets, visibility, absent/zero/invalid geometry. |
-| Audio unit regressions | Existing lifecycle and clock checks, with rendering mocked at the module boundary. |
-| Layout browser fixture | Real DOM/CSS geometry, default/custom theme, transparent interior, single-node reuse, null/none clearing, warning deduplication, target removal/replacement on seek. |
-| Input checks | Real pointer clicks reach both highlighted and dimmed controls; focus is retained and no library focus target is added. |
-| Lifecycle browser checks | Stop/start reuse, repeated destroy cleanup, warning-callback destruction and error/end clearing. |
-| Real-media regression | Existing generated-tone tests still use actual browser audio and now assert visible highlighting and completion/error clearing. |
-| Visual inspection | Screenshot of the static spotlight/cutout in the minimal fixture. |
+| Test area                | Coverage                                                                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit resolver tests      | Literal IDs, runtime replacement, disconnected/missing targets, visibility, absent/zero/invalid geometry.                                                            |
+| Audio unit regressions   | Existing lifecycle and clock checks, with rendering mocked at the module boundary.                                                                                   |
+| Layout browser fixture   | Real DOM/CSS geometry, default/custom theme, transparent interior, single-node reuse, null/none clearing, warning deduplication, target removal/replacement on seek. |
+| Input checks             | Real pointer clicks reach both highlighted and dimmed controls; focus is retained and no library focus target is added.                                              |
+| Lifecycle browser checks | Stop/start reuse, repeated destroy cleanup, warning-callback destruction and error/end clearing.                                                                     |
+| Real-media regression    | Existing generated-tone tests still use actual browser audio and now assert visible highlighting and completion/error clearing.                                      |
+| Visual inspection        | Screenshot of the static spotlight/cutout in the minimal fixture.                                                                                                    |
 
 The layout fixture mocks media to keep geometry checks deterministic; it does not establish audio timing. The separate audio fixture tests real media. Neither fixture is a standalone application or external consumer project.
 
@@ -82,22 +82,22 @@ The layout fixture mocks media to keep geometry checks deterministic; it does no
 In your existing consumer, import the CSS and use visible elements with unique IDs. Keep the page layout still for this phase's assessment. Use an original or licensed audio file long enough for the timestamps.
 
 ```js
-import { Walkthrough } from 'chaley-walkthrough';
-import 'chaley-walkthrough/style.css';
+import { Walkthrough } from "chaley-walkthrough";
+import "chaley-walkthrough/style.css";
 
 const tour = new Walkthrough({
-  audio: '/audio/your-recording.mp3',
-  defaults: { effect: 'spotlight' },
+  audio: "/audio/your-recording.mp3",
+  defaults: { effect: "spotlight" },
   theme: { overlayOpacity: 0.1, padding: 6, borderRadius: 8 },
   timeline: [
-    { time: 0, target: '#first-target' },
-    { time: 3, target: '#second-target' },
+    { time: 0, target: "#first-target" },
+    { time: 3, target: "#second-target" },
     { time: 6, target: null },
-    { time: 9, target: '#missing-target' },
-    { time: 12, target: '#first-target', effect: 'none' },
+    { time: 9, target: "#missing-target" },
+    { time: 12, target: "#first-target", effect: "none" },
   ],
 });
-tour.on('error', issue => console.warn(issue.code, issue.message));
+tour.on("error", (issue) => console.warn(issue.code, issue.message));
 // In an existing click handler, await tour.start() and handle rejection.
 ```
 
@@ -117,15 +117,15 @@ Automatic trigger binding is not implemented; continue using host click handlers
 
 ## 6. Verification record
 
-| Check | Recorded result |
-| --- | --- |
-| Unit suite | Passed: 109 tests in 5 files. |
-| Browser suite | Passed: 11 Chrome tests, including final real-media completion/error clearing assertions. |
-| Static screenshot | Inspected: clear cutout, aligned padding/outline and dimmed surrounding page. |
-| Type checking / package | Passed: typecheck, production build and npm pack with prepack checks. ESM/IIFE, CSS, declarations and all three phase reports included. |
-| Real narration / long-duration timing | Pending. Audio fixture uses a generated tone. |
-| External vanilla / React | Pending owner testing. |
-| Firefox / Safari / Edge / mobile | Not tested in this phase. |
+| Check                                 | Recorded result                                                                                                                         |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit suite                            | Passed: 109 tests in 5 files.                                                                                                           |
+| Browser suite                         | Passed: 11 Chrome tests, including final real-media completion/error clearing assertions.                                               |
+| Static screenshot                     | Inspected: clear cutout, aligned padding/outline and dimmed surrounding page.                                                           |
+| Type checking / package               | Passed: typecheck, production build and npm pack with prepack checks. ESM/IIFE, CSS, declarations and all three phase reports included. |
+| Real narration / long-duration timing | Pending. Audio fixture uses a generated tone.                                                                                           |
+| External vanilla / React              | Pending owner testing.                                                                                                                  |
+| Firefox / Safari / Edge / mobile      | Not tested in this phase.                                                                                                               |
 
 The first layout run exposed an unintended native audio request in the mocked fixture, causing media-error cleanup during geometry assertions. The fixture now prevents that request; separate real-media coverage remains intact. Missing local development dependencies were restored before verification. Initial failed checks are not counted as passes.
 
@@ -145,3 +145,5 @@ For defects, include the build/version, browser/OS, config, target ID and releva
 ## 8. Next phase
 
 Phase 4 adds animated movement, ripple and geometry tracking. It will receive its own capability and assessment document. Scrolling and actions remain later phases.
+
+Later update: the native-dialog limitations recorded at this checkpoint are superseded by [Native dialog support](DIALOG_SUPPORT.md). Other limitations remain as stated.

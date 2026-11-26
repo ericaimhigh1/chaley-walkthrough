@@ -37,3 +37,6 @@ Automated checks cover the above in minimal library fixtures. Final executed res
 Corner avoidance is best effort; a target covering most of the viewport may leave no free corner. Native dialogs, iframes and shadow DOM remain outside MVP support. A consumer may preventDefault on Escape before it reaches the player's document listener to preserve its own dialog behavior.
 
 Files: src/ui/Player.ts, src/styles/walkthrough.css, core types/validation/Walkthrough integration; tests/browser/player.spec.ts and updated action tests. No runtime dependency or external application was added.
+
+
+Later update: the native-dialog limitations recorded at this checkpoint are superseded by [Native dialog support](DIALOG_SUPPORT.md). Other limitations remain as stated.

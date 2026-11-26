@@ -29,3 +29,6 @@ Phase 5 checkpoint: typecheck and ESM/IIFE builds passed; 109 unit tests passed.
 Full containment is conservative: oversized targets cannot become fully visible. Overlapping elements, transformed clipping geometry, sticky headers, native top-layer UI, shadow DOM and iframes are not comprehensively assessed. Native scroll cancellation and alignment require testing on additional browsers. Firefox, Safari, Edge, mobile and external vanilla/React integration remain pending. Narration must leave time for scrolling and transitions. Pause does not pause narration-dependent scrolling; pending actions are separately cancelled in Phase 6.
 
 Next: [Phase 6 actions](PHASE_6.md).
+
+
+Later update: the native-dialog limitations recorded at this checkpoint are superseded by [Native dialog support](DIALOG_SUPPORT.md). Other limitations remain as stated.

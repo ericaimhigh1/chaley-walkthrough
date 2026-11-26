@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { packageAsset } from './assets';
 import { expect, test } from '@playwright/test';
 import type { Walkthrough } from '../../src/core/Walkthrough';
 import type { CueChangeEvent, WalkthroughIssue } from '../../src/core/types';
@@ -32,9 +32,9 @@ test.beforeEach(async ({ page }) => {
   const audio = wave();
   await page.route('http://walkthrough.test/**', async route => {
     const path = new URL(route.request().url()).pathname;
-    if (path === '/library.js') return route.fulfill({ contentType: 'text/javascript', body: readFileSync('dist/chaley-walkthrough.js') });
-    if (path === '/style.css') return route.fulfill({ contentType: 'text/css', body: readFileSync('dist/style.css') });
-    if (path === '/library.iife.js') return route.fulfill({ contentType: 'text/javascript', body: readFileSync('dist/chaley-walkthrough.iife.js') });
+    if (path === '/library.js') return route.fulfill({ contentType: 'text/javascript', body: packageAsset('chaley-walkthrough.js') });
+    if (path === '/style.css') return route.fulfill({ contentType: 'text/css', body: packageAsset('style.css') });
+    if (path === '/library.iife.js') return route.fulfill({ contentType: 'text/javascript', body: packageAsset('chaley-walkthrough.iife.js') });
     if (path === '/tone.wav') {
       const range = route.request().headers().range?.match(/^bytes=(\d+)-(\d*)$/);
       if (range) {

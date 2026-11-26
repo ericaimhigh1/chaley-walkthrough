@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { packageAsset } from './assets';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import type { WalkthroughConfig } from '../../src/core/types';
@@ -16,8 +16,8 @@ const root = '.chaley-walkthrough-root';
 test.beforeEach(async ({ page }) => {
   await page.route('http://motion.test/**', route => {
     const path = new URL(route.request().url()).pathname;
-    if (path === '/library.js') return route.fulfill({ contentType: 'text/javascript', body: readFileSync('dist/chaley-walkthrough.js') });
-    if (path === '/style.css') return route.fulfill({ contentType: 'text/css', body: readFileSync('dist/style.css') });
+    if (path === '/library.js') return route.fulfill({ contentType: 'text/javascript', body: packageAsset('chaley-walkthrough.js') });
+    if (path === '/style.css') return route.fulfill({ contentType: 'text/css', body: packageAsset('style.css') });
     return route.fulfill({ contentType: 'text/html', body: `<!doctype html><link rel="stylesheet" href="/style.css">
       <style>body{margin:0;background:white;min-height:1800px}button{position:absolute;box-sizing:border-box}
       #first{left:80px;top:100px;width:160px;height:60px}#second{left:400px;top:240px;width:100px;height:80px}

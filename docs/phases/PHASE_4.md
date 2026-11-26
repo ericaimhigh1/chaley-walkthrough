@@ -136,3 +136,6 @@ For defects, record the version/build, browser/OS, reduced-motion setting, effec
 ## 8. Next phase
 
 Phase 5 adds automatic scrolling, visibility checks and cancellation of stale scrolling work. It will receive its own capabilities and assessment document.
+
+
+Later update: the native-dialog limitations recorded at this checkpoint are superseded by [Native dialog support](DIALOG_SUPPORT.md). Other limitations remain as stated.

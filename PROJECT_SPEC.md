@@ -1,4 +1,4 @@
-# Chaley Walkthrough â€” Project Specification
+# Chaley Walkthrough - Project Specification
 
 ## 1. Project overview
 
@@ -30,26 +30,26 @@ Out of scope: automatic multi-tour playlists, React Native, visual timeline edit
 Use a public `Walkthrough` class. Each instance owns exactly one audio source, one timeline, its optional trigger, theme, playback state and lifecycle. Developers may create any number of instances on a page or initialise different instances on different pages. No public manager, registry or array of walkthrough configurations is required. The proposed npm name `chaley-walkthrough` must be checked before publication.
 
 ```js
-import { Walkthrough } from 'chaley-walkthrough';
-import 'chaley-walkthrough/style.css';
+import { Walkthrough } from "chaley-walkthrough";
+import "chaley-walkthrough/style.css";
 
 const walletTour = new Walkthrough({
-  trigger: '#start-wallet-tour',
-  audio: '/audio/wallet.mp3',
+  trigger: "#start-wallet-tour",
+  audio: "/audio/wallet.mp3",
   timeline: [
-    { time: 0, target: '#wallet-balance' },
-    { time: 5, target: '#top-up-button' },
-    { time: 12, target: '#transactions' }
-  ]
+    { time: 0, target: "#wallet-balance" },
+    { time: 5, target: "#top-up-button" },
+    { time: 12, target: "#transactions" },
+  ],
 });
 
 const settingsTour = new Walkthrough({
-  trigger: '#start-settings-tour',
-  audio: '/audio/settings.mp3',
+  trigger: "#start-settings-tour",
+  audio: "/audio/settings.mp3",
   timeline: [
-    { time: 0, target: '#profile' },
-    { time: 8, target: '#preferences' }
-  ]
+    { time: 0, target: "#profile" },
+    { time: 8, target: "#preferences" },
+  ],
 });
 ```
 
@@ -82,7 +82,7 @@ An internal document-scoped playback coordinator, invisible to consumers, ensure
   "audio": "/audio/dashboard-tour.mp3",
   "theme": {
     "overlayOpacity": 0.1,
-    "highlightColor": "#6366f1",
+    "highlightColor": "#073b80",
     "padding": 6,
     "borderRadius": 8
   },
@@ -95,10 +95,27 @@ An internal document-scoped playback coordinator, invisible to consumers, ensure
   },
   "timeline": [
     { "time": 0, "target": null, "caption": "Welcome to your dashboard." },
-    { "time": 3, "target": "#wallet-button", "caption": "Here is your wallet." },
-    { "time": 8, "target": "#profile-button", "effect": "spotlight", "action": { "type": "click" } },
-    { "time": 10, "target": "#profile-settings", "caption": "Here are your profile settings." },
-    { "time": 16, "target": "#options-button", "action": { "type": "longpress", "holdDuration": 800 } },
+    {
+      "time": 3,
+      "target": "#wallet-button",
+      "caption": "Here is your wallet."
+    },
+    {
+      "time": 8,
+      "target": "#profile-button",
+      "effect": "spotlight",
+      "action": { "type": "click" }
+    },
+    {
+      "time": 10,
+      "target": "#profile-settings",
+      "caption": "Here are your profile settings."
+    },
+    {
+      "time": 16,
+      "target": "#options-button",
+      "action": { "type": "longpress", "holdDuration": 800 }
+    },
     { "time": 22, "target": null }
   ]
 }
@@ -108,18 +125,18 @@ The example intentionally disables actions globally; enable `allowActions` expli
 
 ### Configuration rules
 
-| Field | Meaning |
-|---|---|
-| audio | Browser-playable audio URL |
-| time | Cue start in seconds, fractional values supported |
-| target | HTML ID reference with leading `#`; null clears highlight |
-| caption | Optional text displayed as text, never interpreted as HTML |
-| scroll | Override automatic scrolling |
-| effect | ripple, spotlight or none |
-| transition | move or instant |
-| transitionDuration | Milliseconds |
-| action | Optional click or longpress descriptor |
-| holdDuration | Milliseconds for simulated long press |
+| Field              | Meaning                                                    |
+| ------------------ | ---------------------------------------------------------- |
+| audio              | Browser-playable audio URL                                 |
+| time               | Cue start in seconds, fractional values supported          |
+| target             | HTML ID reference with leading `#`; null clears highlight  |
+| caption            | Optional text displayed as text, never interpreted as HTML |
+| scroll             | Override automatic scrolling                               |
+| effect             | ripple, spotlight or none                                  |
+| transition         | move or instant                                            |
+| transitionDuration | Milliseconds                                               |
+| action             | Optional click or longpress descriptor                     |
+| holdDuration       | Milliseconds for simulated long press                      |
 
 Require finite non-negative timestamps in strictly increasing order; reject duplicate timestamps. Validate known enum values, ranges and required fields. Warn for cues beyond known audio duration. Each cue remains active until the next cue or completion. Missing target is a recoverable warning, not a fatal playback error. Strip the leading `#` and resolve IDs using `document.getElementById()`; document that IDs must be unique. JSON contains data only, not executable code.
 
@@ -137,7 +154,7 @@ Use HTMLAudioElement as the authoritative clock. Never schedule the entire timel
 
 ## 6. Visual engine
 
-Maintain one persistent floating highlighter rather than creating a new one per cue. Read target geometry using getBoundingClientRect(). Render a fixed-position overlay in a dedicated root appended to the document body. Animate position, dimensions and border radius from the previous target to the next using CSS transitions or Web Animations API.
+Maintain one persistent floating highlighter rather than creating a new one per cue. Read target geometry using getBoundingClientRect(). Render a fixed-position overlay in a dedicated root appended to the document body by default. For an active native modal dialog, mount the highlighter and player in a shared dialog-descendant manual popover host so they remain interactive and escape clipping and transforms. Restore body mounting when the dialog closes or is removed; track changes even while paused or showing captions only. Native dialog support is an owner-approved extension. Animate position, dimensions and border radius from the previous target to the next using CSS transitions or Web Animations API.
 
 - Backdrop: configurable dimming with a transparent cutout around the target; default opacity 0.1. A large box shadow or SVG mask is a possible implementation.
 - Spotlight: clear outline around the target with configurable padding and radius.
@@ -146,7 +163,7 @@ Maintain one persistent floating highlighter rather than creating a new one per 
 - Recalculate geometry on scrolling, resizing and target size changes. Use ResizeObserver and coalesced animation-frame updates; avoid restarting transitions on every scroll event.
 - Respect prefers-reduced-motion: disable ripple motion and use instant positioning/scrolling.
 - Handle targets removed or replaced by React renders. Clear stale highlights and resolve again when appropriate.
-- Avoid global CSS selectors and use namespaced classes/custom properties. Document stacking-context limitations, especially native dialogs, iframes and shadow DOM (not supported in MVP).
+- Avoid global CSS selectors and use namespaced classes/custom properties. Support native modal dialogs in browsers with the Popover API and :modal. Document remaining stacking-context limitations, including iframes and shadow DOM (not supported in MVP).
 
 ## 7. Automatic scrolling
 
@@ -199,6 +216,7 @@ chaley-walkthrough/
     dom/
       TargetResolver.ts
       ScrollController.ts
+      LayerHost.ts
       HighlightRenderer.ts
       ActionExecutor.ts
     ui/
@@ -259,6 +277,7 @@ Use unit tests for timeline lookup, validation, action eligibility and state tra
 - Developer-authored actions run unless explicitly disabled and do not duplicate on resume or seek.
 - Missing/removed targets, invalid configuration and audio errors are handled predictably.
 - Reduced motion, keyboard controls and captions work as documented.
+- Native modal dialogs keep the player usable and highlights aligned, including transformed/clipped dialogs, modal switching, close/removal, caption-only cues and cleanup. Escape stops an active tour without closing the host dialog.
 - Repeated mount/destroy cycles leave no overlays, listeners or active audio behind.
 - Vanilla imports and direct browser script work with packaged builds; React compatibility is verified in the separate consumer testing phase.
 - Multiple independently initialised walkthroughs can be launched by distinct triggers; switching stops the previous tour, and destroy removes trigger listeners.
