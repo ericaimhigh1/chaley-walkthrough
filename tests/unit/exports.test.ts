@@ -8,7 +8,7 @@ it('imports without browser globals but requires a browser to construct', () => 
   expect(() => new Walkthrough({ audio: '/tour.mp3', timeline: [] })).toThrow('only in a browser');
 });
 
-it('validates construction without creating media, DOM or trigger listeners in phase 1', () => {
+it('validates construction without creating media, DOM or trigger listeners', () => {
   vi.stubGlobal('document', {});
   expect(() => new Walkthrough({ audio: '/tour.mp3', timeline: [] })).not.toThrow();
   expect(() => new Walkthrough({ audio: '', timeline: [] })).toThrow('config.audio');

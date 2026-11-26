@@ -1,4 +1,25 @@
-/* Phase 1 CSS entry. Visual styles will be added with the rendering phases. */
+/* Decorative only: neither the overlay nor the highlight captures input. */
 .chaley-walkthrough-root {
-  --chaley-walkthrough-overlay-opacity: 0.1;
+  position: fixed;
+  inset: 0;
+  z-index: var(--chaley-walkthrough-z-index, 2147483000);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.chaley-walkthrough-root[hidden] {
+  display: none !important;
+}
+
+.chaley-walkthrough-highlight {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--chaley-walkthrough-border-radius, 8px);
+  background: transparent;
+  outline: 2px solid var(--chaley-walkthrough-highlight-color, #6366f1);
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / var(--chaley-walkthrough-overlay-opacity, 0.1));
+  pointer-events: none;
 }

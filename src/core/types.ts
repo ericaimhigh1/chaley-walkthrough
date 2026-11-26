@@ -53,3 +53,24 @@ export interface WalkthroughState {
   readonly duration: number | null;
   readonly activeCue: TimelineCue | null;
 }
+
+export type CueChangeReason = 'start' | 'resume' | 'playback' | 'seek' | 'recovery' | 'stop' | 'ended' | 'error' | 'destroy';
+export interface CueChangeEvent {
+  readonly cue: TimelineCue | null;
+  readonly previousCue: TimelineCue | null;
+  readonly reason: CueChangeReason;
+  readonly state: WalkthroughState;
+}
+export interface WalkthroughIssue {
+  readonly code: 'PLAYBACK_REJECTED' | 'MEDIA_ERROR' | 'SEEK_FAILED' | 'CUE_BEYOND_DURATION' | 'TARGET_NOT_FOUND' | 'TARGET_NOT_RENDERABLE' | 'RENDER_UNAVAILABLE';
+  readonly message: string;
+  readonly recoverable: boolean;
+  readonly cause?: unknown;
+  readonly cue?: TimelineCue;
+}
+export interface WalkthroughEventMap {
+  readonly statechange: WalkthroughState;
+  readonly cuechange: CueChangeEvent;
+  readonly complete: WalkthroughState;
+  readonly error: WalkthroughIssue;
+}

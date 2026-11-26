@@ -1,6 +1,6 @@
 {
   "name": "chaley-walkthrough",
-  "version": "0.1.0-phase.1",
+  "version": "0.1.0-phase.3",
   "description": "Audio-clock-driven walkthroughs for web interfaces.",
   "type": "module",
   "license": "MIT",
@@ -17,6 +17,8 @@
   "files": [
     "dist",
     "docs/USAGE.md",
+    "docs/phases",
+    "PROJECT_SPEC.md",
     "LICENSE",
     "README.md"
   ],
@@ -29,9 +31,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:browser": "npm run build && playwright test",
     "prepack": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.11",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",

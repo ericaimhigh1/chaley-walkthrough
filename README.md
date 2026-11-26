@@ -2,15 +2,18 @@
 
 A framework-independent web library for synchronising recorded narration with guided interface highlights.
 
-**Status: Phase 1 foundation only.** Configuration validation, timeline lookup, TypeScript declarations and package builds are implemented. Playback, highlights, actions, player controls and trigger binding are not yet implemented. This prerelease is not a usable walkthrough player.
+**Status: Phase 3 static highlighting.** Audio playback, lifecycle controls, cue/state subscriptions, runtime ID resolution, static highlights and a configurable backdrop are implemented. Animation, geometry tracking, scrolling, actions, the player, trigger binding and exclusive playback remain for later phases.
 
 See [usage and development instructions](docs/USAGE.md) and the governing [project specification](PROJECT_SPEC.md).
+
+Phase assessments: [Phase 1 foundation](docs/phases/PHASE_1.md), [Phase 2 audio playback](docs/phases/PHASE_2.md) and [Phase 3 static highlighting](docs/phases/PHASE_3.md). Each phase has its own capabilities, checks and limitations document.
 
 ```sh
 npm install
 npm run typecheck
 npm test
 npm run build
+npm run test:browser
 ```
 
-No runtime dependencies. MIT licensed. Package name availability and external vanilla/React compatibility remain unverified.
+Browser tests use installed Chrome in headless mode and minimal automated fixtures. No runtime dependencies. MIT licensed. Package name availability and external vanilla/React compatibility remain unverified. The owner reported successful Phase 1 export testing.

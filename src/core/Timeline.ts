@@ -5,11 +5,13 @@ export function findActiveCueIndex(timeline: readonly TimelineCue[], time: numbe
   if (!Number.isFinite(time) || time < 0) throw new RangeError('time must be finite and non-negative');
   let low = 0;
   let high = timeline.length;
+
   while (low < high) {
     const middle = low + Math.floor((high - low) / 2);
     if (timeline[middle]!.time <= time) low = middle + 1;
     else high = middle;
   }
+
   return low - 1;
 }
 
