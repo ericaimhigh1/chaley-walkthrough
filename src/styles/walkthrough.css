@@ -1,0 +1,4 @@
+/* Phase 1 CSS entry. Visual styles will be added with the rendering phases. */
+.chaley-walkthrough-root {
+  --chaley-walkthrough-overlay-opacity: 0.1;
+}

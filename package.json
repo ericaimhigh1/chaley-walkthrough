@@ -1,0 +1,40 @@
+{
+  "name": "chaley-walkthrough",
+  "version": "0.1.0-phase.1",
+  "description": "Audio-clock-driven walkthroughs for web interfaces.",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/chaley-walkthrough.js",
+  "module": "./dist/chaley-walkthrough.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/chaley-walkthrough.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "docs/USAGE.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepack": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.2"
+  }
+}
