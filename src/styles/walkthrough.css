@@ -23,3 +23,36 @@
   box-shadow: 0 0 0 100vmax rgb(0 0 0 / var(--chaley-walkthrough-overlay-opacity, 0.1));
   pointer-events: none;
 }
+
+.chaley-walkthrough-root[data-effect="ripple"] .chaley-walkthrough-highlight::before,
+.chaley-walkthrough-root[data-effect="ripple"] .chaley-walkthrough-highlight::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--chaley-walkthrough-highlight-color, #6366f1);
+  border-radius: inherit;
+  pointer-events: none;
+  animation: chaley-walkthrough-ripple 1600ms ease-out infinite;
+}
+
+.chaley-walkthrough-root[data-effect="ripple"] .chaley-walkthrough-highlight::after {
+  animation-delay: -800ms;
+}
+
+.chaley-walkthrough-root[data-paused="true"] .chaley-walkthrough-highlight::before,
+.chaley-walkthrough-root[data-paused="true"] .chaley-walkthrough-highlight::after {
+  animation-play-state: paused;
+}
+
+@keyframes chaley-walkthrough-ripple {
+  from { transform: scale(1); opacity: 0.55; }
+  to { transform: scale(1.18); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chaley-walkthrough-root[data-effect="ripple"] .chaley-walkthrough-highlight::before,
+  .chaley-walkthrough-root[data-effect="ripple"] .chaley-walkthrough-highlight::after {
+    animation: none;
+    content: none;
+  }
+}

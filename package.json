@@ -1,6 +1,6 @@
 {
   "name": "chaley-walkthrough",
-  "version": "0.1.0-phase.3",
+  "version": "0.1.0-phase.4",
   "description": "Audio-clock-driven walkthroughs for web interfaces.",
   "type": "module",
   "license": "MIT",

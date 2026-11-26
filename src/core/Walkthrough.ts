@@ -4,6 +4,7 @@ import { findActiveCue } from './Timeline';
 import type { CueChangeReason, NormalizedWalkthroughConfig, WalkthroughConfig, WalkthroughEventMap, WalkthroughIssue, WalkthroughState } from './types';
 import { validateConfig } from './validation';
 import { HighlightRenderer } from '../dom/HighlightRenderer';
+import type { TargetProblem } from '../dom/TargetResolver';
 
 interface PendingPlay {
   readonly promise: Promise<void>;
@@ -31,7 +32,7 @@ export class Walkthrough {
     if (typeof document === 'undefined') throw new Error('Instantiate Walkthrough only in a browser. Module imports are SSR-safe.');
     this.config = validateConfig(config);
     this.document = document;
-    this.renderer = new HighlightRenderer(document);
+    this.renderer = new HighlightRenderer(document, issue => this.reportTargetIssue(issue));
   }
 
   get state(): WalkthroughState { return this.snapshot; }
@@ -257,7 +258,7 @@ export class Walkthrough {
     this.update({ status: 'error', activeCue: null }, 'error');
     if (this.state.status === 'error') this.emit('error', Object.freeze({ code, message, recoverable: false, cause }));
   }
-  private renderVisuals(): void {
+  private renderVisuals(animate = false): void {
     const { status, activeCue } = this.state;
     if (status === 'destroyed') { this.renderer.destroy(); return; }
     if (!['loading', 'playing', 'paused'].includes(status) || !activeCue?.target ||
@@ -265,8 +266,19 @@ export class Walkthrough {
       this.renderer.clear();
       return;
     }
-    const issue = this.renderer.show(activeCue.target, this.config.theme);
-    if (issue) {
+    const issue = this.renderer.show(activeCue.target, this.config.theme, {
+      effect: activeCue.effect ?? this.config.defaults.effect,
+      transition: activeCue.transition ?? this.config.defaults.transition,
+      transitionDuration: activeCue.transitionDuration ?? this.config.defaults.transitionDuration,
+      animate,
+      paused: status !== 'playing',
+    });
+    if (issue) this.reportTargetIssue(issue);
+  }
+
+  private reportTargetIssue(issue: TargetProblem): void {
+    const { activeCue, status } = this.state;
+    if (activeCue?.target && ['loading', 'playing', 'paused'].includes(status)) {
       const key = `${issue.code}:${activeCue.target}`;
       if (!this.warnedTargets.has(key)) {
         this.warnedTargets.add(key);
@@ -283,7 +295,9 @@ export class Walkthrough {
       return;
     }
     this.snapshot = next;
-    if (refreshVisual || previous.activeCue !== next.activeCue || previous.status !== next.status) this.renderVisuals();
+    if (refreshVisual || previous.activeCue !== next.activeCue || previous.status !== next.status) {
+      this.renderVisuals(previous.activeCue !== next.activeCue && reason === 'playback');
+    }
     if (this.snapshot !== next) return;
     this.emit('statechange', next);
     if (this.snapshot !== next) return;

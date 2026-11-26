@@ -2,9 +2,9 @@
 
 ## Implementation status
 
-Phase 3 adds static highlights, a transparent-cutout backdrop and runtime ID resolution to the audio core. Construction creates no media or overlay DOM. Start creates audio lazily; the first drawable cue creates the highlight. Animation, geometry tracking, scrolling, actions, player UI, trigger binding and document-wide coordination remain for later phases. Use one playing instance at a time until Phase 8 introduces exclusive playback.
+Phase 4 adds animated movement, ripple and continuous geometry tracking to the audio and highlight core. Construction creates no media, overlay DOM or observers. Start creates audio lazily; the first drawable cue creates the highlight. Automatic scrolling, actions, player UI, trigger binding and document-wide coordination remain for later phases. Use one playing instance at a time until Phase 8 introduces exclusive playback.
 
-See [Phase 1](phases/PHASE_1.md), [Phase 2](phases/PHASE_2.md) and [Phase 3](phases/PHASE_3.md) for capabilities, assessment steps, errors and results. The owner reported successful Phase 1 export testing. Full external vanilla/React integration remains pending. Phase assessment files are included in the npm archive.
+See [Phase 1](phases/PHASE_1.md), [Phase 2](phases/PHASE_2.md), [Phase 3](phases/PHASE_3.md) and [Phase 4](phases/PHASE_4.md) for capabilities, assessment steps, errors and results. Historical phase reports describe their own baseline; this guide describes current behaviour. Full external vanilla/React integration remains pending. Phase assessment files are included in the npm archive.
 
 ## Local development
 
@@ -81,7 +81,7 @@ All timestamps are seconds; transition and hold durations are milliseconds. Unkn
 
 Each cue requires a finite, non-negative `time` and a `target` that is either `null` or a `#`-prefixed ID. Times must be strictly increasing; duplicates are rejected rather than sorted. IDs must be unique in the host document and contain no ASCII whitespace. References are literal IDs, not CSS selectors, so punctuation does not require CSS escaping.
 
-Cues may override `scroll`, `effect`, `transition` and `transitionDuration` using the same validation rules as defaults. Optional `caption` must be a string and will be rendered as text, never HTML. `target: null` clears both highlight and backdrop. Scroll and transition options are validated but not implemented yet.
+Cues may override `scroll`, `effect`, `transition` and `transitionDuration` using the same validation rules as defaults. Optional `caption` must be a string and will be rendered as text, never HTML. `target: null` clears both highlight and backdrop. Scroll options are validated but automatic scrolling is not implemented yet.
 
 Optional `action` is either `{ type: 'click' }` or `{ type: 'longpress', holdDuration: 800 }`. Long-press duration must be finite and positive. Actions require a non-null target and are validated even when `allowActions` is false. `holdDuration` is invalid on click actions.
 
@@ -131,7 +131,9 @@ document.getElementById("start-tour").addEventListener("click", () => {
 // On application cleanup: unsubscribe(); tour.destroy();
 ```
 
-## Static highlighting (Phase 3)
+<a id="static-highlighting-phase-3"></a>
+
+## Highlighting, motion and tracking (Phase 4)
 
 Import `chaley-walkthrough/style.css` (or link the generated stylesheet for script-tag usage). CSS is required for positioning, dimming and pointer pass-through. Targets are literal document IDs resolved using `getElementById()` after removing the first `#`; punctuation needs no CSS escaping. IDs must be unique. Initialise after the host DOM exists.
 
@@ -139,22 +141,31 @@ One fixed, decorative root is appended to the document body on the first drawabl
 
 | Setting | Current rendering |
 | --- | --- |
-| `effect: 'spotlight'` | Static outline plus backdrop. |
-| `effect: 'ripple'` (default) | The same static outline plus backdrop for Phase 3. Expanding ripple rings arrive in Phase 4. |
+| `effect: 'spotlight'` | Outline and backdrop without ripple rings. |
+| `effect: 'ripple'` (default) | Outline/backdrop plus two expanding, fading rings. |
 | `effect: 'none'` | Clears outline and backdrop for that cue. Overrides the instance default. |
 | `target: null` | Clears all visual decoration. |
 | `theme.overlayOpacity: 0` | Transparent backdrop; outline remains. |
 | `theme.highlightColor`, `padding`, `borderRadius` | Set outline color, outside padding and cutout/outline radius. |
+| `transition: 'move'` (default) | Animate natural cue changes between visible highlight positions. |
+| `transition: 'instant'` | Position immediately. |
+| `transitionDuration` | Movement milliseconds, default 400; zero makes positioning instant. |
 
-Geometry is sampled on cue changes, explicit seek (even to the same time), start/resume and playback-status changes. Pause retains the highlight. Stop, completion and fatal audio errors hide it; destroy removes the owned nodes. Seeking while idle/ended/error does not create visible decoration. Stop/start reuse the same nodes until destruction.
+Natural playback cue changes animate position, width, height and radius from the current rendered box to the destination using the configured duration. A new cue interrupts earlier movement and starts from the current rendered position. First appearance, seeking (including same-time seeks), recovery and changes while paused position immediately. Pause retains the highlight, settles any in-progress movement at the target and pauses ripple; resume restarts ripple. Stop, completion and fatal audio errors hide it and release tracking; destroy removes the owned nodes. Seeking while idle/ended/error does not create visible decoration. Stop/start reuse the same nodes until destruction.
 
 A missing/detached target or one with no positive layout box or hidden/collapsed CSS visibility clears stale decoration and emits a recoverable warning; audio continues and the active timeline cue remains selected. Warnings are deduplicated per issue code and target ID per instance. A body-less document emits `RENDER_UNAVAILABLE`. No warning is emitted for a null target or an effect-none cue.
 
-IDs are re-resolved at each render, so a later seek, cue activation or resume can find a newly mounted/replaced target. **Continuous observation is not implemented yet:** scrolling, resizing, layout changes and target removal during an unchanged cue may leave stale geometry until reconciliation. Phase 4 adds tracking. Phase 5 adds scrolling and clipping-aware visibility checks. Off-screen targets are not brought into view; a backdrop may cover the viewport when the cutout is outside it. Ancestor opacity, occlusion and nested clipping are not assessed by the basic resolver.
+IDs and geometry are checked once per animation frame while a non-null, non-none cue is active in a visible document, including while playback is paused or buffering. ResizeObserver watches the current target; captured scroll and window resize events share the same pending frame. This also detects transform-only changes, sibling layout shifts and target removal/replacement without a seek. Missing targets stay eligible for automatic recovery while their cue remains active. No DOM-wide mutation observer is installed.
+
+Tracking writes geometry only when it changes. If the target moves during a transition, movement is cancelled and the highlight follows its current box immediately rather than repeatedly restarting the transition. This keeps user scrolling aligned. Hidden documents suspend geometry frames and pause ripple; visibility recovery refreshes geometry immediately. Stop, null/none cues, end, fatal errors and destroy disconnect observers/listeners and cancel queued frames and movement.
+
+Phase 5 adds automatic scrolling and clipping-aware visibility checks. Off-screen targets are not brought into view; a backdrop may cover the viewport when the cutout is outside it. Ancestor opacity, occlusion and nested clipping are not assessed by the basic resolver. Continuous tracking reads one active target per frame; verify performance on complex host pages.
 
 Theme configuration supplies inline custom properties on the overlay root: `--chaley-walkthrough-overlay-opacity`, `--chaley-walkthrough-highlight-color` and `--chaley-walkthrough-border-radius`. Prefer configuration for these values. The stylesheet also exposes `--chaley-walkthrough-z-index` (default 2147483000), which can be set on `.chaley-walkthrough-root`. No global element selectors are installed.
 
-Native dialogs/top-layer content, iframes, shadow DOM and transformed body/root stacking contexts are outside MVP support. A high z-index cannot solve every stacking context. There is no motion in Phase 3, including when reduced motion is requested; this is not a claim of accessibility compliance.
+`prefers-reduced-motion: reduce` disables ripple and forces instant positioning. Preference changes are handled live: enabling it cancels current movement and settles the highlight at its target. Ripple has two 1600ms cycles staggered by 800ms; these decorative timings are fixed in this phase, not new configuration fields. The layers remain pointer-transparent and do not move keyboard focus.
+
+Native dialogs/top-layer content, iframes, shadow DOM and transformed body/root stacking contexts are outside MVP support. A high z-index cannot solve every stacking context. Reduced-motion and input tests are not a claim of accessibility compliance.
 
 ## React lifecycle snippet
 
@@ -180,4 +191,4 @@ const startTour = () => {
 
 Use future opt-in actions only for non-destructive UI changes. Do not automate submission, payments or deletion; avoid navigation controls. Synthetic events cannot provide trusted user gestures. Seeking will not reconstruct UI state from earlier actions. Long-press handler compatibility requires explicit testing.
 
-Animated rendering, geometry tracking, scrolling, keyboard player controls, captions and player theming are pending. Native dialog stacking, iframes and shadow DOM are outside MVP support. Chrome test results are recorded in the phase reports; Firefox, Safari, Edge and mobile remain untested. There is no telemetry. Playback fetches the configured audio URL; remote hosts may receive requests. Serve audio with correct content type and byte-range support for seeking. Use original or licensed narration and leave time for future scrolling and animations.
+Automatic scrolling, keyboard player controls, captions and player theming are pending. Native dialog stacking, iframes and shadow DOM are outside MVP support. Chrome test results are recorded in the phase reports; Firefox, Safari, Edge and mobile remain untested. There is no telemetry. Playback fetches the configured audio URL; remote hosts may receive requests. Serve audio with correct content type and byte-range support for seeking. Use original or licensed narration and leave time for scrolling and animations when authoring timestamps.
