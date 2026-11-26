@@ -99,6 +99,7 @@ export class Player {
     this.caption.hidden = !caption;
     this.place(state);
   }
+
   private place(state: WalkthroughState): void {
     const preferred = this.config.player.position;
     this.root!.dataset.position = preferred;
@@ -112,12 +113,15 @@ export class Player {
     }
     this.root!.dataset.position = preferred;
   }
+
   private readonly keydown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); this.controls.stop(); }
   };
+
   private unlisten(): void {
     if (this.listening) this.document.removeEventListener('keydown', this.keydown);
     this.listening = false;
   }
+  
   destroy(): void { this.unlisten(); this.root?.remove(); this.root = null; this.snapshot = null; }
 }

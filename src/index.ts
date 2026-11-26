@@ -1,8 +1,20 @@
-import './styles/walkthrough.css';
+import "./styles/walkthrough.css";
 
-export { Walkthrough } from './core/Walkthrough';
+export { Walkthrough } from "./core/Walkthrough";
 export type {
-  IdReference, Effect, Transition, WalkthroughStatus, CueAction, CueOptions,
-  TimelineCue, PlayerOptions, WalkthroughTheme, WalkthroughConfig, WalkthroughState,
-  CueChangeReason, CueChangeEvent, WalkthroughIssue, WalkthroughEventMap,
-} from './core/types';
+  IdReference,
+  Effect,
+  Transition,
+  WalkthroughStatus,
+  CueAction,
+  CueOptions,
+  TimelineCue,
+  PlayerOptions,
+  WalkthroughTheme,
+  WalkthroughConfig,
+  WalkthroughState,
+  CueChangeReason,
+  CueChangeEvent,
+  WalkthroughIssue,
+  WalkthroughEventMap,
+} from "./core/types";

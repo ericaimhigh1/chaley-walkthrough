@@ -1,6 +1,7 @@
 interface Session { stop(): void }
 interface Scope { active: Session | null; generation: number; triggers: Map<string, Session> }
 const documents = new WeakMap<Document, Scope>();
+
 function scope(document: Document): Scope {
   let entry = documents.get(document);
   if (!entry) { entry = { active: null, generation: 0, triggers: new Map() }; documents.set(document, entry); }
@@ -18,6 +19,7 @@ export function claimPlayback(document: Document, session: Session): boolean {
   previous?.stop();
   return entry.active === session && entry.generation === generation;
 }
+
 export function releasePlayback(document: Document, session: Session): void {
   const entry = scope(document);
   if (entry.active === session) { entry.active = null; entry.generation++; }

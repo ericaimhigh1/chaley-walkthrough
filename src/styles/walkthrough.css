@@ -19,7 +19,7 @@
   border: 0;
   border-radius: var(--chaley-walkthrough-border-radius, 8px);
   background: transparent;
-  outline: 2px solid var(--chaley-walkthrough-highlight-color, #6366f1);
+  outline: 2px solid var(--chaley-walkthrough-highlight-color, #053da5);
   box-shadow: 0 0 0 100vmax rgb(0 0 0 / var(--chaley-walkthrough-overlay-opacity, 0.1));
   pointer-events: none;
 }
@@ -29,7 +29,7 @@
   content: "";
   position: absolute;
   inset: -2px;
-  border: 2px solid var(--chaley-walkthrough-highlight-color, #6366f1);
+  border: 2px solid var(--chaley-walkthrough-highlight-color, #053da5);
   border-radius: inherit;
   pointer-events: none;
   animation: chaley-walkthrough-ripple 1600ms ease-out infinite;
@@ -45,11 +45,19 @@
 }
 
 @keyframes chaley-walkthrough-ripple {
-  from { transform: scale(1); opacity: 0.55; }
-  to { transform: scale(1.18); opacity: 0; }
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+
+  to {
+    transform: scale(1.18);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .chaley-walkthrough-root[data-effect="ripple"] .chaley-walkthrough-highlight::before,
   .chaley-walkthrough-root[data-effect="ripple"] .chaley-walkthrough-highlight::after {
     animation: none;
@@ -57,12 +65,12 @@
   }
 }
 
-
 .chaley-walkthrough-player {
   position: fixed;
   z-index: var(--chaley-walkthrough-player-z-index, 2147483001);
   box-sizing: border-box;
-  width: min(360px, calc(100vw - 2 * var(--chaley-walkthrough-player-offset, 16px)));
+  width: min(360px,
+      calc(100vw - 2 * var(--chaley-walkthrough-player-offset, 16px)));
   max-height: calc(100dvh - 2 * var(--chaley-walkthrough-player-offset, 16px));
   overflow: auto;
   padding: var(--chaley-walkthrough-player-spacing, 16px);
@@ -72,18 +80,82 @@
   color: var(--chaley-walkthrough-player-color, #172033);
   opacity: var(--chaley-walkthrough-player-opacity, 1);
   box-shadow: 0 8px 32px #0f172a24;
-  font: 14px/1.5 system-ui, sans-serif;
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
   pointer-events: auto;
 }
-.chaley-walkthrough-player[data-position^="bottom"] { bottom: var(--chaley-walkthrough-player-offset, 16px); top: auto; }
-.chaley-walkthrough-player[data-position^="top"] { top: var(--chaley-walkthrough-player-offset, 16px); bottom: auto; }
-.chaley-walkthrough-player[data-position$="right"] { right: var(--chaley-walkthrough-player-offset, 16px); left: auto; }
-.chaley-walkthrough-player[data-position$="left"] { left: var(--chaley-walkthrough-player-offset, 16px); right: auto; }
-.chaley-walkthrough-player [hidden], .chaley-walkthrough-player[hidden] { display: none !important; }
-.chaley-walkthrough-player-row, .chaley-walkthrough-player-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.chaley-walkthrough-player-status { font-weight: 600; }
-.chaley-walkthrough-player input[type="range"] { display: block; width: 100%; margin: 12px 0; accent-color: var(--chaley-walkthrough-player-accent, var(--chaley-walkthrough-player-accent-default, #6366f1)); }
-.chaley-walkthrough-player button { font: inherit; color: inherit; background: transparent; border: 1px solid var(--chaley-walkthrough-player-border, #cbd5e1); border-radius: 8px; min-height: 40px; padding: 6px 10px; cursor: pointer; }
-.chaley-walkthrough-player button:hover { background: var(--chaley-walkthrough-player-hover, #f1f5f9); }
-.chaley-walkthrough-player button:focus-visible, .chaley-walkthrough-player input:focus-visible { outline: 3px solid var(--chaley-walkthrough-player-accent, var(--chaley-walkthrough-player-accent-default, #6366f1)); outline-offset: 3px; }
-.chaley-walkthrough-player-caption { margin: 12px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.chaley-walkthrough-player[data-position^="bottom"] {
+  bottom: var(--chaley-walkthrough-player-offset, 16px);
+  top: auto;
+}
+
+.chaley-walkthrough-player[data-position^="top"] {
+  top: var(--chaley-walkthrough-player-offset, 16px);
+  bottom: auto;
+}
+
+.chaley-walkthrough-player[data-position$="right"] {
+  right: var(--chaley-walkthrough-player-offset, 16px);
+  left: auto;
+}
+
+.chaley-walkthrough-player[data-position$="left"] {
+  left: var(--chaley-walkthrough-player-offset, 16px);
+  right: auto;
+}
+
+.chaley-walkthrough-player [hidden],
+.chaley-walkthrough-player[hidden] {
+  display: none !important;
+}
+
+.chaley-walkthrough-player-row,
+.chaley-walkthrough-player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chaley-walkthrough-player-status {
+  font-weight: 600;
+}
+
+.chaley-walkthrough-player input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+  accent-color: var(--chaley-walkthrough-player-accent,
+      var(--chaley-walkthrough-player-accent-default, #053da5));
+}
+
+.chaley-walkthrough-player button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--chaley-walkthrough-player-border, #cbd5e1);
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.chaley-walkthrough-player button:hover {
+  background: var(--chaley-walkthrough-player-hover, #f1f5f9);
+}
+
+.chaley-walkthrough-player button:focus-visible,
+.chaley-walkthrough-player input:focus-visible {
+  outline: 3px solid var(--chaley-walkthrough-player-accent,
+      var(--chaley-walkthrough-player-accent-default, #053da5));
+  outline-offset: 3px;
+}
+
+.chaley-walkthrough-player-caption {
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
