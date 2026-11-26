@@ -63,12 +63,17 @@ describe('configuration validation', () => {
     expect(() => validateConfig({ ...valid(), timeline: Array(1) })).toThrow('timeline[0]');
   });
 
-  it('accepts boundary values and valid actions without enabling them implicitly', () => {
+  it.each(['click', 'longpress', null, false, 1, [], () => {}])('explains the expected action descriptor for %s', action => {
+    expect(() => validateConfig({ ...valid(), timeline: [{ time: 0, target: '#wallet', action }] }))
+      .toThrow('config.timeline[0].action: expected { type: "click" } or { type: "longpress", holdDuration: 800 }; omit action for a highlight-only cue');
+  });
+
+  it('treats developer-authored actions as opt-in', () => {
     const result = validateConfig({ ...valid(), theme: { overlayOpacity: 1, padding: 0, borderRadius: 0 }, timeline: [
       { time: 0, target: '#wallet', action: { type: 'click' } },
       { time: 1, target: '#wallet', action: { type: 'longpress', holdDuration: 800 } },
     ] });
-    expect(result.allowActions).toBe(false);
+    expect(result.allowActions).toBe(true);
     expect(result.timeline[1]?.action).toEqual({ type: 'longpress', holdDuration: 800 });
   });
 
@@ -87,3 +92,9 @@ describe('configuration validation', () => {
     expect(Object.isFrozen(input)).toBe(false);
   });
 });
+
+ it('validates and copies player settings', () => {
+   expect(validateConfig({ ...valid(), player: { position: 'top-left', captions: false } }).player).toEqual({ position: 'top-left', captions: false });
+   expect(() => validateConfig({ ...valid(), player: { position: 'middle' } })).toThrow('player.position');
+   expect(() => validateConfig({ ...valid(), player: { captions: 'yes' } })).toThrow('player.captions');
+ });

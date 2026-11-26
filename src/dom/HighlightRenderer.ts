@@ -36,6 +36,8 @@ export class HighlightRenderer {
     return issue;
   }
 
+  get settled(): boolean { return !!this.root?.isConnected && !this.root.hidden && (!this.movement || this.movement.playState === 'finished'); }
+
   private refresh(animate = false, snap = false): TargetProblem | null {
     if (!this.active) return null;
     const { reference, theme, options } = this.active;

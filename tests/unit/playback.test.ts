@@ -1,3 +1,5 @@
+vi.mock('../../src/ui/Player', () => ({ Player: class { render() {} destroy() {} } }));
+vi.mock('../../src/dom/ScrollController', () => ({ ScrollController: class { start() { return false; } cancel() {} } }));
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Walkthrough } from '../../src/core/Walkthrough';
 
@@ -272,4 +274,25 @@ describe('audio playback lifecycle', () => {
     expect(media.every(audio => audio.count === 0 && audio.src === '' && audio.paused)).toBe(true);
     expect(doc.count).toBe(0); expect(frames.size).toBe(0);
   });
+});
+
+it('switching instances aborts pending play and ignores its late resolution', async () => {
+  const first = tour(), second = tour();
+  const pending = first.start();
+  const rejected = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+  const oldAudio = media[0]!;
+  await play(second); await rejected;
+  oldAudio.resolvePlay(); await Promise.resolve();
+  expect(first.state.status).toBe('idle'); expect(second.state.status).toBe('playing');
+  expect(oldAudio.paused).toBe(true); expect(oldAudio.count).toBe(0);
+  first.destroy(); expect(second.state.status).toBe('playing');
+});
+it('switching stops paused sessions and a reentrant start supersedes the outer request', async () => {
+  const first = tour(), second = tour(), third = tour();
+  await play(first); first.pause();
+  let thirdPlay: Promise<void> | undefined;
+  first.on('statechange', state => { if (state.status === 'idle') thirdPlay = third.start(); });
+  await expect(second.start()).rejects.toMatchObject({ name: 'AbortError' });
+  media.at(-1)!.resolvePlay(); await thirdPlay;
+  expect(first.state.status).toBe('idle'); expect(second.state.status).toBe('idle'); expect(third.state.status).toBe('playing');
 });

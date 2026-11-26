@@ -128,3 +128,22 @@ test('IIFE browser build supports user-initiated audio', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.tour.state.currentTime)).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.tour.state.status)).toBe('playing');
 });
+
+
+test('real media startup executes the initial opted-in action once', async ({ page }) => {
+  await page.evaluate(async () => {
+    window.tour.destroy();
+    const moduleUrl = '/library.js';
+    const { Walkthrough } = await import(moduleUrl) as typeof import('../../src/core/Walkthrough');
+    const target = document.getElementById('one')!;
+    target.setAttribute('data-clicks', '0');
+    target.onclick = () => target.setAttribute('data-clicks', String(Number(target.getAttribute('data-clicks')) + 1));
+    window.tour = new Walkthrough({ audio: '/tone.wav', allowActions: true, timeline: [{ time: 0, target: '#one', action: { type: 'click' } }] });
+  });
+  await page.click('#start');
+  await expect(page.locator('#one')).toHaveAttribute('data-clicks', '1');
+  await page.evaluate(() => window.tour.pause());
+  await page.click('#resume');
+  await expect.poll(() => page.evaluate(() => window.tour.state.status)).toBe('playing');
+  await expect(page.locator('#one')).toHaveAttribute('data-clicks', '1');
+});

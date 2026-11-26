@@ -1,8 +1,13 @@
+import { claimPlayback, releasePlayback, claimTrigger } from './PlaybackCoordinator';
+import { Player } from '../ui/Player';
 import { AudioController } from './AudioController';
 import type { AudioEvent } from './AudioController';
 import { findActiveCue } from './Timeline';
 import type { CueChangeReason, NormalizedWalkthroughConfig, WalkthroughConfig, WalkthroughEventMap, WalkthroughIssue, WalkthroughState } from './types';
 import { validateConfig } from './validation';
+import { ActionExecutor } from '../dom/ActionExecutor';
+import type { TimelineCue } from './types';
+import { ScrollController } from '../dom/ScrollController';
 import { HighlightRenderer } from '../dom/HighlightRenderer';
 import type { TargetProblem } from '../dom/TargetResolver';
 
@@ -13,6 +18,8 @@ interface PendingPlay {
 }
 
 export class Walkthrough {
+  private unbindTrigger: (() => void) | null = null;
+  private readonly player: Player;
   private readonly config: NormalizedWalkthroughConfig;
   private readonly document: Document;
   private audio: AudioController | null = null;
@@ -25,6 +32,11 @@ export class Walkthrough {
   private generation = 0;
   private readonly warnedCues = new Set<number>();
   private watchingVisibility = false;
+  private readonly actions: ActionExecutor;
+  private eligibleAction: TimelineCue | null = null;
+  private readonly attemptedActions = new Set<TimelineCue>();
+  private readonly scroller: ScrollController;
+  private scrolling = false;
   private readonly renderer: HighlightRenderer;
   private readonly warnedTargets = new Set<string>();
 
@@ -32,7 +44,29 @@ export class Walkthrough {
     if (typeof document === 'undefined') throw new Error('Instantiate Walkthrough only in a browser. Module imports are SSR-safe.');
     this.config = validateConfig(config);
     this.document = document;
+    this.player = new Player(document, this.config, this);
+    this.actions = new ActionExecutor(document);
+    this.scroller = new ScrollController(document);
     this.renderer = new HighlightRenderer(document, issue => this.reportTargetIssue(issue));
+    this.bindTrigger();
+  }
+
+  private bindTrigger(): void {
+    const reference = this.config.trigger;
+    if (!reference) return;
+    const target = this.document.getElementById(reference.slice(1));
+    const warn = (code: 'TRIGGER_NOT_FOUND' | 'TRIGGER_CONFLICT', message: string) => queueMicrotask(() => {
+      if (this.state.status !== 'destroyed') this.emit('error', Object.freeze({ code, message, recoverable: true }));
+    });
+    if (!target) { warn('TRIGGER_NOT_FOUND', `Trigger ${reference} was not found. Initialise after mounting its element.`); return; }
+    const release = claimTrigger(this.document, reference, this);
+    if (!release) { warn('TRIGGER_CONFLICT', `Trigger ${reference} is already assigned to another walkthrough.`); return; }
+    const click = (event: Event) => {
+      event.preventDefault();
+      void this.start().catch(() => {}); // Media failures are reported through the error event.
+    };
+    target.addEventListener('click', click);
+    this.unbindTrigger = () => { target.removeEventListener('click', click); release(); };
   }
 
   get state(): WalkthroughState { return this.snapshot; }
@@ -82,6 +116,8 @@ export class Walkthrough {
   seek(time: number): void {
     this.assertAlive();
     if (!Number.isFinite(time) || time < 0) throw new RangeError('time must be finite and non-negative');
+    this.actions.cancel();
+    this.eligibleAction = null;
     let position = this.state.duration === null ? time : Math.min(time, this.state.duration);
     try { position = this.audio?.seek(position) ?? position; }
     catch (cause) {
@@ -95,11 +131,13 @@ export class Walkthrough {
   stop(): void { this.assertAlive(); this.reset('idle', 'stop'); }
   destroy(): void {
     if (this.state.status === 'destroyed') return;
+    this.unbindTrigger?.(); this.unbindTrigger = null;
     this.reset('destroyed', 'destroy');
     this.listeners.clear();
   }
 
   private begin(resuming: boolean): Promise<void> {
+    if (!resuming) this.attemptedActions.clear();
     let resolve!: () => void;
     let reject!: (error: unknown) => void;
     const promise = new Promise<void>((yes, no) => { resolve = yes; reject = no; });
@@ -109,6 +147,10 @@ export class Walkthrough {
     this.buffering = false;
     const time = resuming ? this.state.currentTime : 0;
     try {
+      if (!claimPlayback(this.document, this) || this.pending !== pending) {
+        if (this.pending === pending) { this.wantsPlayback = false; this.cancelPlay(); }
+        return promise;
+      }
       if (!this.audio) {
         const audio = new AudioController(this.document, this.config.audio, event => {
           if (this.audio === audio) this.handleMedia(event);
@@ -200,7 +242,10 @@ export class Walkthrough {
       this.scheduleFrame();
       return;
     }
-    if (event === 'seeking' || event === 'seeked') this.reconcile('seek');
+    if (event === 'seeking' || event === 'seeked') {
+      if (audio.currentTime !== this.state.currentTime) { this.actions.cancel(); this.eligibleAction = null; }
+      this.reconcile('seek');
+    }
     else if (event === 'timeupdate' && this.wantsPlayback) this.reconcile(this.document.hidden ? 'recovery' : 'playback');
   }
   private reconcile(reason: CueChangeReason): void {
@@ -211,6 +256,8 @@ export class Walkthrough {
   }
   private readonly handleVisibility = (): void => {
     this.cancelFrame();
+    this.actions.cancel();
+    this.eligibleAction = null;
     if (this.wantsPlayback) this.reconcile('recovery');
     this.scheduleFrame();
   };
@@ -242,6 +289,7 @@ export class Walkthrough {
     this.watchingVisibility = false;
   }
   private reset(status: 'idle' | 'destroyed', reason: CueChangeReason): void {
+    releasePlayback(this.document, this);
     this.wantsPlayback = false;
     this.cancelFrame();
     this.cancelPlay();
@@ -258,8 +306,24 @@ export class Walkthrough {
     this.update({ status: 'error', activeCue: null }, 'error');
     if (this.state.status === 'error') this.emit('error', Object.freeze({ code, message, recoverable: false, cause }));
   }
+  private prepareVisuals(animate: boolean): void {
+    this.scroller.cancel();
+    this.scrolling = false;
+    const cue = this.state.activeCue;
+    if (cue?.target && ['loading', 'playing', 'paused'].includes(this.state.status) && (cue.scroll ?? this.config.defaults.scroll)) {
+      this.scrolling = this.scroller.start(cue.target, visible => {
+        this.scrolling = false;
+        if (this.state.activeCue !== cue) return;
+        if (visible) { this.renderVisuals(); this.queueAction(); }
+        else this.emit('error', Object.freeze({ code: 'SCROLL_INCOMPLETE', message: 'Target did not become fully visible within the scroll wait.', recoverable: true, cue }));
+      });
+    }
+    this.renderVisuals(animate);
+  }
+
   private renderVisuals(animate = false): void {
     const { status, activeCue } = this.state;
+    if (this.scrolling) { this.renderer.clear(); return; }
     if (status === 'destroyed') { this.renderer.destroy(); return; }
     if (!['loading', 'playing', 'paused'].includes(status) || !activeCue?.target ||
         (activeCue.effect ?? this.config.defaults.effect) === 'none') {
@@ -274,6 +338,17 @@ export class Walkthrough {
       paused: status !== 'playing',
     });
     if (issue) this.reportTargetIssue(issue);
+  }
+
+  private queueAction(): void {
+    const cue = this.eligibleAction;
+    if (!cue?.target || !cue.action || this.scrolling || this.state.status !== 'playing' || this.document.hidden || this.attemptedActions.has(cue)) return;
+    this.eligibleAction = null;
+    this.attemptedActions.add(cue);
+    this.actions.run(cue.target, cue.action, () => (cue.effect ?? this.config.defaults.effect) === 'none' || this.renderer.settled,
+      2000 + (cue.transitionDuration ?? this.config.defaults.transitionDuration), message => {
+        if (this.state.activeCue === cue) this.emit('error', Object.freeze({ code: 'ACTION_SKIPPED', message, recoverable: true, cue }));
+      });
   }
 
   private reportTargetIssue(issue: TargetProblem): void {
@@ -291,14 +366,26 @@ export class Walkthrough {
     const previous = this.snapshot;
     const next = Object.freeze({ ...previous, ...patch });
     if (Object.keys(next).every(key => next[key as keyof WalkthroughState] === previous[key as keyof WalkthroughState])) {
-      if (refreshVisual) this.renderVisuals();
+      if (refreshVisual) this.prepareVisuals(false);
       return;
     }
     this.snapshot = next;
+    if (previous.activeCue !== next.activeCue) {
+      this.actions.cancel();
+      if (this.snapshot !== next) return;
+      this.eligibleAction = this.config.allowActions && (reason === 'start' || (reason === 'playback' && next.status === 'playing' && !this.document.hidden)) ? next.activeCue : null;
+    }
+    if (next.status !== 'playing') this.actions.cancel();
+    if (this.snapshot !== next) return;
+    if (next.status === 'loading' && reason === 'recovery' && !this.pending) this.eligibleAction = null;
+    if (next.status === 'paused' || !['loading', 'playing'].includes(next.status)) this.eligibleAction = null;
     if (refreshVisual || previous.activeCue !== next.activeCue || previous.status !== next.status) {
-      this.renderVisuals(previous.activeCue !== next.activeCue && reason === 'playback');
+      if (refreshVisual || previous.activeCue !== next.activeCue) this.prepareVisuals(previous.activeCue !== next.activeCue && reason === 'playback');
+      else this.renderVisuals();
     }
     if (this.snapshot !== next) return;
+    this.queueAction();
+    this.player.render(next);
     this.emit('statechange', next);
     if (this.snapshot !== next) return;
     if (previous.activeCue !== next.activeCue) {

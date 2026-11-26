@@ -47,10 +47,13 @@ function options(value: Record<string, unknown>, path: string): void {
 
 /** Validate untrusted configuration and return an owned, deeply frozen snapshot. No DOM access. */
 export function validateConfig(input: unknown): NormalizedWalkthroughConfig {
-  const config = object(input, 'config', ['audio', 'timeline', 'trigger', 'allowActions', 'theme', 'defaults']);
+  const config = object(input, 'config', ['audio', 'timeline', 'trigger', 'allowActions', 'theme', 'defaults', 'player']);
   string(config.audio, 'config.audio');
   if (config.trigger !== undefined) id(config.trigger, 'config.trigger');
   if (config.allowActions !== undefined && typeof config.allowActions !== 'boolean') fail('config.allowActions', 'expected a boolean');
+  const player = config.player === undefined ? {} : object(config.player, 'config.player', ['position', 'captions']);
+  if (player.position !== undefined && !['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(player.position as string)) fail('config.player.position', 'expected a corner position');
+  if (player.captions !== undefined && typeof player.captions !== 'boolean') fail('config.player.captions', 'expected a boolean');
   const defaults = config.defaults === undefined ? {} : object(config.defaults, 'config.defaults', optionKeys);
   options(defaults, 'config.defaults');
   const theme = config.theme === undefined ? {} : object(config.theme, 'config.theme', ['overlayOpacity', 'highlightColor', 'padding', 'borderRadius']);
@@ -75,6 +78,9 @@ export function validateConfig(input: unknown): NormalizedWalkthroughConfig {
     let action;
     if (cue.action !== undefined) {
       if (cue.target === null) fail(`${path}.action`, 'requires a target');
+      if (cue.action === null || typeof cue.action !== 'object' || Array.isArray(cue.action)) {
+        fail(`${path}.action`, 'expected { type: "click" } or { type: "longpress", holdDuration: 800 }; omit action for a highlight-only cue');
+      }
       const descriptor = object(cue.action, `${path}.action`, ['type', 'holdDuration']);
       if (descriptor.type === 'longpress') number(descriptor.holdDuration, `${path}.action.holdDuration`, true);
       else if (descriptor.type === 'click') {
@@ -87,7 +93,8 @@ export function validateConfig(input: unknown): NormalizedWalkthroughConfig {
   return Object.freeze({
     audio: config.audio,
     ...(config.trigger !== undefined ? { trigger: config.trigger } : {}),
-    allowActions: config.allowActions ?? false,
+    allowActions: config.allowActions ?? timeline.some(cue => cue.action !== undefined),
+    player: Object.freeze({ position: player.position ?? 'bottom-right', captions: player.captions ?? true }),
     defaults: Object.freeze({ scroll: defaults.scroll ?? true, effect: defaults.effect ?? 'ripple', transition: defaults.transition ?? 'move', transitionDuration: defaults.transitionDuration ?? 400 }),
     theme: Object.freeze({ overlayOpacity: theme.overlayOpacity ?? 0.1, highlightColor: theme.highlightColor ?? '#6366f1', padding: theme.padding ?? 6, borderRadius: theme.borderRadius ?? 8 }),
     timeline: Object.freeze(timeline),

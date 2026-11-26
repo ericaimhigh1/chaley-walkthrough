@@ -1,4 +1,4 @@
-# Chaley Walkthrough — Project Specification
+# Chaley Walkthrough â€” Project Specification
 
 ## 1. Project overview
 
@@ -156,7 +156,7 @@ For the MVP, audio continues during scrolling. Track target geometry while scrol
 
 ## 8. Optional timeline-driven actions
 
-Actions are disabled by default and require explicit developer opt-in. Execute only after resolving the current target, scrolling if necessary and applying the highlight. If the cue changes before the action can run, cancel it. Pause must cancel pending actions; resume must not duplicate completed actions.
+Adding an action descriptor is developer opt-in. Actions run unless the developer explicitly sets allowActions to false. Visitors are not asked to approve actions. Execute only after resolving the current target, scrolling if necessary and applying the highlight. If the cue changes before the action can run, cancel it. Pause must cancel pending actions; resume must not duplicate completed actions.
 
 ### Click
 
@@ -171,7 +171,7 @@ There is no universal native DOM longpress event. Define a documented synthetic 
 - Recommend actions only for non-destructive UI changes: dropdowns, modals, accordions, tabs, sidebars and similar controls.
 - Warn against links and navigation buttons, including SPA route changes, because navigation can interrupt the tour and invalidate target IDs.
 - Never recommend automated form submission, payments, deletion or other state-changing business operations.
-- Conservatively block obvious anchors, submit controls and disabled controls by default. This cannot detect arbitrary navigation or side effects inside JavaScript handlers; site owners remain responsible for choosing safe targets.
+- Per the owner's revised action policy, do not block actions based on element type or inferred business safety. Developers choose appropriate targets. Native disabled controls and browser restrictions retain their normal behavior.
 - Do not attempt to bypass browser restrictions on trusted events, popups or privileged APIs.
 - Actions are never fired simply because the user seeks across a timestamp. Document that seeking cannot reconstruct UI state created by earlier actions.
 
@@ -256,7 +256,7 @@ Use unit tests for timeline lookup, validation, action eligibility and state tra
 - A persistent spotlight moves and resizes smoothly between targets.
 - Off-screen and nested-scroll targets become visible; rapid cue changes cancel stale operations.
 - Click opens a dropdown in a minimal automated test fixture; a later cue highlights its content. Long press works with a documented compatible handler.
-- Actions remain disabled by default and do not duplicate on resume or seek.
+- Developer-authored actions run unless explicitly disabled and do not duplicate on resume or seek.
 - Missing/removed targets, invalid configuration and audio errors are handled predictably.
 - Reduced motion, keyboard controls and captions work as documented.
 - Repeated mount/destroy cycles leave no overlays, listeners or active audio behind.

@@ -2,9 +2,9 @@
 
 ## Implementation status
 
-Phase 4 adds animated movement, ripple and continuous geometry tracking to the audio and highlight core. Construction creates no media, overlay DOM or observers. Start creates audio lazily; the first drawable cue creates the highlight. Automatic scrolling, actions, player UI, trigger binding and document-wide coordination remain for later phases. Use one playing instance at a time until Phase 8 introduces exclusive playback.
+Phases 1-8 are implemented: audio, animated highlighting, scrolling, developer-authored actions, floating player, trigger binding and exclusive playback. Construction binds a configured trigger but creates no media, overlay or player DOM. Start creates those lazily. Each document has one active session, including paused sessions.
 
-See [Phase 1](phases/PHASE_1.md), [Phase 2](phases/PHASE_2.md), [Phase 3](phases/PHASE_3.md) and [Phase 4](phases/PHASE_4.md) for capabilities, assessment steps, errors and results. Historical phase reports describe their own baseline; this guide describes current behaviour. Full external vanilla/React integration remains pending. Phase assessment files are included in the npm archive.
+See [Phase 1](phases/PHASE_1.md), [Phase 2](phases/PHASE_2.md), [Phase 3](phases/PHASE_3.md) and [Phase 4](phases/PHASE_4.md), [Phase 5](phases/PHASE_5.md) and [Phase 6](phases/PHASE_6.md), [Phase 7](phases/PHASE_7.md) and [Phase 8](phases/PHASE_8.md) for capabilities, assessment steps, errors and results. Historical phase reports describe their own baseline; this guide describes current behaviour. Full external vanilla/React integration remains pending. Phase assessment files are included in the npm archive.
 
 ## Local development
 
@@ -31,7 +31,7 @@ Run `npm run test:browser` separately for Playwright tests against installed Goo
 import { Walkthrough } from "chaley-walkthrough";
 import "chaley-walkthrough/style.css";
 
-// Initialise after mount. Trigger binding is not implemented yet.
+// Initialise after the trigger and initial targets have mounted.
 const tour = new Walkthrough({
   audio: "/audio/tour.mp3",
   timeline: [
@@ -68,8 +68,10 @@ All timestamps are seconds; transition and hold durations are milliseconds. Unkn
 | ----------------------------- | ------------------------------------------------------------------------------------------- |
 | `audio`                       | Required non-empty URL string. Media failures are reported during playback.                  |
 | `timeline`                    | Required array; empty is allowed for audio-only playback.                                   |
-| `trigger`                     | Optional literal HTML ID prefixed with `#`; binding arrives in Phase 8.                     |
-| `allowActions`                | Boolean; defaults to `false`. Execution arrives in Phase 6.                                 |
+| `trigger`                     | Optional literal HTML ID prefixed with `#`; binds at construction.                     |
+| `allowActions`                | Optional developer override. Authored actions run unless explicitly `false`.                                 |
+| `player.position` | One of `bottom-right` (default), `bottom-left`, `top-right`, `top-left`. |
+| `player.captions` | Boolean; initially shows captions by default. |
 | `defaults.scroll`             | Boolean; defaults to `true`.                                                                |
 | `defaults.effect`             | `ripple`, `spotlight`, `none`; defaults to `ripple`.                                        |
 | `defaults.transition`         | `move`, `instant`; defaults to `move`.                                                      |
@@ -81,15 +83,17 @@ All timestamps are seconds; transition and hold durations are milliseconds. Unkn
 
 Each cue requires a finite, non-negative `time` and a `target` that is either `null` or a `#`-prefixed ID. Times must be strictly increasing; duplicates are rejected rather than sorted. IDs must be unique in the host document and contain no ASCII whitespace. References are literal IDs, not CSS selectors, so punctuation does not require CSS escaping.
 
-Cues may override `scroll`, `effect`, `transition` and `transitionDuration` using the same validation rules as defaults. Optional `caption` must be a string and will be rendered as text, never HTML. `target: null` clears both highlight and backdrop. Scroll options are validated but automatic scrolling is not implemented yet.
+Cues may override `scroll`, `effect`, `transition` and `transitionDuration` using the same validation rules as defaults. Optional `caption` must be a string and is rendered as text, never HTML. `target: null` clears both highlight and backdrop. Automatic scrolling respects cue overrides.
 
 Optional `action` is either `{ type: 'click' }` or `{ type: 'longpress', holdDuration: 800 }`. Long-press duration must be finite and positive. Actions require a non-null target and are validated even when `allowActions` is false. `holdDuration` is invalid on click actions.
+
+If construction reports `config.timeline[10].action`, check the eleventh cue (indices start at zero). Use `action: { type: 'click' }`, not `action: 'click'`. For a cue without an action, omit the property rather than supplying `null`, `false` or an empty string. This validates the descriptor format; it does not judge whether the developer's chosen interaction is appropriate.
 
 The timeline selects the latest cue at or before the audio clock, returning no cue before the first timestamp or for an empty timeline. Completion clears the cue. Cues beyond finite known duration emit recoverable warnings once per cue per instance.
 
 ## Playback API and events
 
-The package exports `WalkthroughConfig`, `TimelineCue`, `CueOptions`, `CueAction`, `WalkthroughTheme`, `WalkthroughState`, `WalkthroughStatus`, `IdReference`, `Effect`, `Transition`, `CueChangeReason`, `CueChangeEvent`, `WalkthroughIssue` and `WalkthroughEventMap` as TypeScript types.
+The package exports `WalkthroughConfig`, `TimelineCue`, `CueOptions`, `CueAction`, `WalkthroughTheme`, `PlayerOptions`, `WalkthroughState`, `WalkthroughStatus`, `IdReference`, `Effect`, `Transition`, `CueChangeReason`, `CueChangeEvent`, `WalkthroughIssue` and `WalkthroughEventMap` as TypeScript types.
 
 | Member | Behaviour |
 | --- | --- |
@@ -116,7 +120,7 @@ Seeking while idle/ended/error updates the snapshot without changing status or s
 
 Cue reasons: `start`, `resume`, `playback`, `seek`, `recovery`, `stop`, `ended`, `error`, `destroy`. Seeking and recovery select only the current cue, without a backlog. Media events supplement animation-frame polling; no independent timeline timer is used. `loading` covers initial start and buffering. Hidden-tab recovery reconciles with the media clock. Subscriber exceptions are logged and isolated; keep listeners lightweight.
 
-Audio error codes are `PLAYBACK_REJECTED`, `MEDIA_ERROR`, `SEEK_FAILED` and `CUE_BEYOND_DURATION`. Phase 3 adds recoverable visual warnings: `TARGET_NOT_FOUND`, `TARGET_NOT_RENDERABLE` and `RENDER_UNAVAILABLE`. Direct seek failure emits a recoverable error and throws; deferred seek failure terminates the attempt. `recoverable: false` means the attempt failed, not that the instance is destroyed: start can retry. Browser autoplay restrictions still apply; see [MDN's play promise reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/play).
+Audio error codes are `PLAYBACK_REJECTED`, `MEDIA_ERROR`, `SEEK_FAILED` and `CUE_BEYOND_DURATION`. Phase 3 adds recoverable visual warnings: `TARGET_NOT_FOUND`, `TARGET_NOT_RENDERABLE` and `RENDER_UNAVAILABLE`. Phases 5-6 add `SCROLL_INCOMPLETE` and `ACTION_SKIPPED`, both recoverable. Phase 8 adds recoverable `TRIGGER_NOT_FOUND` and `TRIGGER_CONFLICT` warnings. Direct seek failure emits a recoverable error and throws; deferred seek failure terminates the attempt. `recoverable: false` means the attempt failed, not that the instance is destroyed: start can retry. Browser autoplay restrictions still apply; see [MDN's play promise reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/play).
 
 ```js
 const unsubscribe = tour.on("cuechange", ({ cue, reason }) => {
@@ -159,13 +163,80 @@ IDs and geometry are checked once per animation frame while a non-null, non-none
 
 Tracking writes geometry only when it changes. If the target moves during a transition, movement is cancelled and the highlight follows its current box immediately rather than repeatedly restarting the transition. This keeps user scrolling aligned. Hidden documents suspend geometry frames and pause ripple; visibility recovery refreshes geometry immediately. Stop, null/none cues, end, fatal errors and destroy disconnect observers/listeners and cancel queued frames and movement.
 
-Phase 5 adds automatic scrolling and clipping-aware visibility checks. Off-screen targets are not brought into view; a backdrop may cover the viewport when the cutout is outside it. Ancestor opacity, occlusion and nested clipping are not assessed by the basic resolver. Continuous tracking reads one active target per frame; verify performance on complex host pages.
+Phase 5 brings off-screen targets into view using viewport and ancestor clipping checks. With scrolling disabled, an off-screen cutout can still leave a backdrop over the viewport. Visibility checks do not detect overlapping elements or all transformed clipping geometry. Highlight tracking and player placement read the active target during playback; verify performance on complex host pages.
 
 Theme configuration supplies inline custom properties on the overlay root: `--chaley-walkthrough-overlay-opacity`, `--chaley-walkthrough-highlight-color` and `--chaley-walkthrough-border-radius`. Prefer configuration for these values. The stylesheet also exposes `--chaley-walkthrough-z-index` (default 2147483000), which can be set on `.chaley-walkthrough-root`. No global element selectors are installed.
 
 `prefers-reduced-motion: reduce` disables ripple and forces instant positioning. Preference changes are handled live: enabling it cancels current movement and settles the highlight at its target. Ripple has two 1600ms cycles staggered by 800ms; these decorative timings are fixed in this phase, not new configuration fields. The layers remain pointer-transparent and do not move keyboard focus.
 
 Native dialogs/top-layer content, iframes, shadow DOM and transformed body/root stacking contexts are outside MVP support. A high z-index cannot solve every stacking context. Reduced-motion and input tests are not a claim of accessibility compliance.
+
+## Automatic scrolling (Phase 5)
+
+Visible targets are left in place. Other targets use native `scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" })`, including nested scroll containers and CSS scroll margins. Reduced motion uses `instant`. Full target containment is required, with one pixel tolerance; oversized targets may never satisfy it.
+
+Audio continues while scrolling. The old spotlight is hidden and the new one appears after three stable, visible frames. Waiting stops after two seconds with a recoverable `SCROLL_INCOMPLETE` warning if the target is still inaccessible. Cue change, seek, stop, end and destroy cancel the wait and freeze the native scroll chain at its current position. A seek may initiate a new scroll to its destination. Pause cancels actions but lets scrolling finish. Leave enough narration time for scrolling and transitions.
+
+## Developer-controlled actions (revised in Phase 7)
+
+```js
+const tour = new Walkthrough({
+  audio: "/audio/tour.mp3",
+  // Adding action descriptors opts in; allowActions: false disables them.
+  timeline: [
+    { time: 0, target: null },
+    { time: 2, target: "#open-menu", action: { type: "click" } },
+    { time: 5, target: "#menu-content" },
+    { time: 9, target: "#hold-options", action: { type: "longpress", holdDuration: 800 } },
+  ],
+});
+```
+
+The developer chooses the target and action. Click uses `HTMLElement.click()` after target resolution, visibility, scrolling and highlight movement completion. `effect: "none"` deliberately skips decoration but still requires visibility. Action readiness waits at most two seconds plus the configured transition duration after scrolling.
+
+Adding an action descriptor enables it; no visitor approval is requested. Set `allowActions: false` only when you want to disable all actions for that instance. Each eligible cue has at most one attempt per run. A cancelled/unready attempt is not retried on resume or revisiting the cue; restart or a fresh start after stop/end resets attempts. Pause, buffering, hidden tabs, seek, cue change, stop and destroy cancel pending actions. Seeking to or across an action never executes it; later natural entry into an as-yet unattempted cue can execute it. Recovery selects the current cue without running missed actions. Seeking cannot reconstruct a dropdown or other UI state created by earlier actions.
+
+Long press dispatches bubbling, cancelable, composed `pointerdown`, waits `holdDuration`, then dispatches `pointerup`. Events use `pointerId: 1`, `pointerType: "touch"`, `isPrimary: true`, `button: 0`, centre coordinates and `buttons: 1` on down / `0` on release. Cancellation dispatches `pointercancel` to the original element, including a detached element; host handlers must release press state on cancel. Removal, replacement or loss of visibility also cancels a held press. No mouse events, automatic click, context menu or trusted gesture are synthesized. There is no universal long-press DOM contract: host code must explicitly support this sequence. React handlers remain separately unverified.
+
+There is no element-type safety filter: links, default buttons, labels and form controls are not rejected by the library. Developers decide whether an action is appropriate and whether navigation would interrupt their tour. Native behavior still applies: `HTMLElement.click()` does not activate a disabled native control, and synthetic events remain untrusted. `ACTION_SKIPPED` now indicates a missing/unready target, not a safety-policy rejection. Normal lifecycle cancellation emits no error. Browser restrictions on privileged APIs remain in force.
+
+## Floating player (Phase 7)
+
+The player appears during loading/playback, stays visible while paused, and offers replay after completion or retry after a media error. Stop hides it; destroy removes it. It uses native buttons and a labelled range input with visible focus outlines. Tab navigates controls, Space/Enter activates buttons, and arrow keys seek when the slider has focus. Escape stops the current session unless an earlier handler prevented the event. No focus trap or automatic target focus is used. Unknown or zero duration disables seeking.
+
+Captions come from the active cue and display literally in a polite live region. The caption button is available only if the timeline has captions. `player: { position: "bottom-left", captions: false }` selects a preferred corner and initially hides captions. Placement tries another corner when it overlaps the target; this is best effort during state/clock updates, not a guarantee for targets covering the viewport. Screen-reader combinations require further testing.
+
+Set these CSS custom properties on `:root` or `.chaley-walkthrough-player`:
+
+| Property prefix: `--chaley-walkthrough-player-` | Default |
+| --- | --- |
+| `background`, `color` | `#ffffff`, `#172033` |
+| `accent` | Instance theme.highlightColor |
+| `border`, `hover` | `#cbd5e1`, `#f1f5f9` |
+| `opacity`, `radius` | `1`, `16px` |
+| `spacing`, `offset` | `16px`, `16px` |
+| `z-index` | `2147483001` |
+
+Player controls receive pointer events; the decorative highlight does not. The player remains usable with reduced motion and has no entrance animation. Colors and opacity remain the developer's responsibility when customizing contrast.
+
+## Triggers and independent instances (Phase 8)
+
+```js
+const firstTour = new Walkthrough({
+  audio: "/audio/first.mp3", trigger: "#start-first", timeline: [],
+});
+const secondTour = new Walkthrough({
+  audio: "/audio/second.mp3", trigger: "#start-second", timeline: [],
+});
+firstTour.on("error", issue => console.warn(issue.code, issue.message));
+secondTour.on("error", issue => console.warn(issue.code, issue.message));
+```
+
+Each constructor binds its own trigger and never starts audio. Trigger clicks prevent their default browser navigation/submission and call start; rejected playback promises are handled and reported through error events. Use accessible host buttons for keyboard activation. Starting another instance stops the previous session, including a paused or loading one, and cancels its scroll, action and media work before new playback. The old instance remains reusable at time zero. Completed/error players are also cleared when another tour starts. Destroying an inactive instance never stops the active tour.
+
+Trigger IDs must exist at construction. Missing IDs emit `TRIGGER_NOT_FOUND`; duplicate assignments emit `TRIGGER_CONFLICT`, and the first binding wins. Warnings are queued to the next microtask so subscriptions added immediately after construction receive them. Conflicted/missing-trigger instances still support programmatic start. No document-wide mount observer is installed: if a trigger is mounted or replaced later, destroy and recreate that instance after mount. Destruction releases its trigger reservation and listener; stopping keeps the binding for reuse.
+
+Use one loaded package copy/build per page so instances share the internal document coordinator. No public manager, tour identifier or configuration array is required. Latest start request wins even when lifecycle callbacks request a new start; superseded pending starts reject with AbortError. Destroy tours on route change/unmount; cross-page continuation remains out of scope.
 
 ## React lifecycle snippet
 
@@ -189,6 +260,6 @@ const startTour = () => {
 
 ## Safety and limitations
 
-Use future opt-in actions only for non-destructive UI changes. Do not automate submission, payments or deletion; avoid navigation controls. Synthetic events cannot provide trusted user gestures. Seeking will not reconstruct UI state from earlier actions. Long-press handler compatibility requires explicit testing.
+Use opt-in actions only for non-destructive UI changes. Do not automate submission, payments or deletion; avoid navigation controls. Synthetic events cannot provide trusted user gestures. Seeking will not reconstruct UI state from earlier actions. Long-press handler compatibility requires explicit testing.
 
-Automatic scrolling, keyboard player controls, captions and player theming are pending. Native dialog stacking, iframes and shadow DOM are outside MVP support. Chrome test results are recorded in the phase reports; Firefox, Safari, Edge and mobile remain untested. There is no telemetry. Playback fetches the configured audio URL; remote hosts may receive requests. Serve audio with correct content type and byte-range support for seeking. Use original or licensed narration and leave time for scrolling and animations when authoring timestamps.
+Native dialog stacking, iframes and shadow DOM are outside MVP support. Chrome test results are recorded in the phase reports; Firefox, Safari, Edge and mobile remain untested. There is no telemetry. Playback fetches the configured audio URL; remote hosts may receive requests. Serve audio with correct content type and byte-range support for seeking. Use original or licensed narration and leave time for scrolling and animations when authoring timestamps.
